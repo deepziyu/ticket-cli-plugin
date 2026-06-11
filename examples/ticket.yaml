@@ -1,0 +1,15 @@
+# This is an example ticket.yaml configuration
+# It defines subdirectories to scan and custom field validation rules.
+
+# 1. Subdirectories representing ticket categories. 
+# Only directories configured here will be scanned recursively.
+sub_dirs:
+  - bugs
+  - tasks
+
+# 2. Custom metadata fields configuration for validation.
+extra_fields:
+  - name: module
+    required: true       # Validated as mandatory and non-empty during 'ticket validate'
+  - name: severity
+    required: false

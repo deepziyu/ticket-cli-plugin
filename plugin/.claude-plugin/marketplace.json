@@ -1,0 +1,19 @@
+{
+  "name": "ticket-management-marketplace",
+  "owner": {
+    "name": "deepziyu"
+  },
+  "metadata": {
+    "description": "Custom ticket management plugin for AI agents."
+  },
+  "plugins": [
+    {
+      "name": "ticket-management-plugin",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "description": "Generic ticket-like markdown management tool for humans and AI agents."
+    }
+  ]
+}

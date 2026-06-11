@@ -1,0 +1,17 @@
+# Binaries and build artifacts
+plugin/commands/ticket
+plugin/commands/ticket.exe
+plugin/commands/ticket-*
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Go workspace
+go.work
+go.work.sum
+
+# Backup and temp files
+*~

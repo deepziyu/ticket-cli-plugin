@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Kanban Dashboard</title>
+    <meta name="description" content="A lightweight, high-aesthetics Markdown-based Ticket Kanban board inspired by Linear.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Style Sheets -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Markdown Parser CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Inline SVG Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%236366f1%22/><path d=%22M30 30h40v12H30zm0 24h40v12H30z%22 fill=%22%23fff%22/></svg>">
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-layout">
+        
+        <!-- Sidebar or Header (Here we do a sleek Top Header with filters) -->
+        <header class="app-header">
+            <div class="header-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="3" width="18" height="18" rx="5" stroke="var(--primary-color)" stroke-width="2" />
+                    <path d="M8 8H16" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" />
+                    <path d="M8 12H16" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" />
+                    <path d="M8 16H12" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <span class="logo-text">Ticket Dashboard</span>
+            </div>
+            
+            <!-- Global Controls & Filters -->
+            <div class="header-controls">
+                <div class="search-box">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="search-input" data-i18n-placeholder="search_placeholder" placeholder="搜索 ID 或标题...">
+                </div>
+
+                <div class="filter-group">
+                    <select id="filter-type">
+                        <option value="" data-i18n="all_categories">所有分类</option>
+                    </select>
+                    <select id="filter-priority">
+                        <option value="" data-i18n="all_priorities">所有优先级</option>
+                        <option value="critical">Critical</option>
+                        <option value="major">Major</option>
+                        <option value="minor">Minor</option>
+                        <option value="low">Low</option>
+                    </select>
+                    <select id="filter-owner">
+                        <option value="" data-i18n="all_owners">所有负责人</option>
+                    </select>
+                </div>
+
+                <button id="btn-lang" class="btn btn-secondary" title="Switch Language">🌐 EN</button>
+
+                <button id="btn-refresh" class="btn btn-secondary" data-i18n-title="btn_refresh_title" title="从文件系统重新加载">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 4v6h-6M1 20v-6h6"></path>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    <span data-i18n="btn_refresh">刷新</span>
+                </button>
+
+                <button id="btn-new-ticket" class="btn btn-primary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span data-i18n="btn_new_ticket">新建工单</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Kanban View -->
+        <main class="kanban-container">
+            <!-- Open Column -->
+            <div class="kanban-column" data-status="open">
+                <div class="column-header">
+                    <span class="status-indicator status-open"></span>
+                    <h3 class="column-title" data-i18n="status_open">待处理</h3>
+                    <span class="column-count" id="count-open">0</span>
+                </div>
+                <div class="column-cards" id="cards-open"></div>
+            </div>
+
+            <!-- Fixing Column -->
+            <div class="kanban-column" data-status="fixing">
+                <div class="column-header">
+                    <span class="status-indicator status-fixing"></span>
+                    <h3 class="column-title" data-i18n="status_fixing">处理中</h3>
+                    <span class="column-count" id="count-fixing">0</span>
+                </div>
+                <div class="column-cards" id="cards-fixing"></div>
+            </div>
+
+            <!-- Resolved Column -->
+            <div class="kanban-column" data-status="resolved">
+                <div class="column-header">
+                    <span class="status-indicator status-resolved"></span>
+                    <h3 class="column-title" data-i18n="status_resolved">已解决</h3>
+                    <span class="column-count" id="count-resolved">0</span>
+                </div>
+                <div class="column-cards" id="cards-resolved"></div>
+            </div>
+
+            <!-- Passed Column -->
+            <div class="kanban-column" data-status="passed">
+                <div class="column-header">
+                    <span class="status-indicator status-passed"></span>
+                    <h3 class="column-title" data-i18n="status_passed">已关闭</h3>
+                    <span class="column-count" id="count-passed">0</span>
+                </div>
+                <div class="column-cards" id="cards-passed"></div>
+            </div>
+
+            <!-- Rejected Column -->
+            <div class="kanban-column" data-status="rejected">
+                <div class="column-header">
+                    <span class="status-indicator status-rejected"></span>
+                    <h3 class="column-title" data-i18n="status_rejected">已拒绝</h3>
+                    <span class="column-count" id="count-rejected">0</span>
+                </div>
+                <div class="column-cards" id="cards-rejected"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Ticket View/Edit Detail -->
+    <div id="modal-detail" class="modal-overlay hidden">
+        <div class="modal-container detail-modal">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <span class="ticket-id-badge" id="detail-badge-id">BUG-001</span>
+                    <span class="ticket-type-tag" id="detail-badge-type">BUG</span>
+                </div>
+                <div class="modal-header-right">
+                    <button class="btn-close" id="detail-btn-close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Left Main Content Area -->
+                <div class="modal-main">
+                    <input type="text" id="detail-title" class="editable-title" data-i18n-placeholder="placeholder_title" placeholder="工单标题">
+                    
+                    <div class="markdown-tabs">
+                        <button class="tab-btn active" id="tab-write" data-i18n="tab_write">编辑描述</button>
+                        <button class="tab-btn" id="tab-preview" data-i18n="tab_preview">预览效果</button>
+                    </div>
+
+                    <div class="description-container">
+                        <textarea id="detail-body" class="description-editor" data-i18n-placeholder="placeholder_body" placeholder="在这里使用 Markdown 描述你的任务或缺陷..."></textarea>
+                        <div id="detail-preview" class="description-preview hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar Metadata Area -->
+                <aside class="modal-sidebar">
+                    <h4 class="sidebar-title" data-i18n="sidebar_title">工单属性</h4>
+                    
+                    <div class="meta-field">
+                        <label for="detail-status" data-i18n="label_status">状态</label>
+                        <select id="detail-status">
+                            <option value="open" data-i18n="opt_status_open">待处理 (Open)</option>
+                            <option value="fixing" data-i18n="opt_status_fixing">处理中 (Fixing)</option>
+                            <option value="resolved" data-i18n="opt_status_resolved">已解决 (Resolved)</option>
+                            <option value="passed" data-i18n="opt_status_passed">已验证/关闭 (Passed)</option>
+                            <option value="rejected" data-i18n="opt_status_rejected">已拒绝 (Rejected)</option>
+                        </select>
+                    </div>
+
+                    <div class="meta-field">
+                        <label for="detail-priority" data-i18n="label_priority">优先级</label>
+                        <select id="detail-priority">
+                            <option value="critical">🚨 Critical</option>
+                            <option value="major">🔶 Major</option>
+                            <option value="minor">🔷 Minor</option>
+                            <option value="low">◽ Low</option>
+                        </select>
+                    </div>
+
+                    <div class="meta-field">
+                        <label for="detail-owner" data-i18n="label_owner">负责人</label>
+                        <input type="text" id="detail-owner" data-i18n-placeholder="placeholder_owner" placeholder="输入负责人姓名或账号">
+                    </div>
+
+                    <div class="meta-field">
+                        <label for="detail-conclusion" data-i18n="label_conclusion">解决方案 (结论)</label>
+                        <textarea id="detail-conclusion" data-i18n-placeholder="placeholder_conclusion" placeholder="对于已解决/拒绝的工单，在此填写最终解决结论..."></textarea>
+                    </div>
+
+                    <div class="meta-field">
+                        <label data-i18n="label_created_at">创建时间</label>
+                        <div class="meta-static-val" id="detail-created-at">-</div>
+                    </div>
+
+                    <div class="meta-field">
+                        <label data-i18n="label_updated_at">更新时间</label>
+                        <div class="meta-static-val" id="detail-updated-at">-</div>
+                    </div>
+
+                    <div id="detail-resolved-container" class="meta-field hidden">
+                        <label data-i18n="label_resolved_at">解决时间</label>
+                        <div class="meta-static-val" id="detail-resolved-at">-</div>
+                    </div>
+
+                    <!-- Dynamic Extra Fields -->
+                    <div id="dynamic-fields-container"></div>
+                </aside>
+            </div>
+
+            <div class="modal-footer">
+                <div class="footer-left">
+                    <button id="detail-btn-delete" class="btn btn-danger-link">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        <span data-i18n="btn_delete">删除工单</span>
+                    </button>
+                </div>
+                <div class="footer-right">
+                    <button id="detail-btn-cancel" class="btn btn-secondary" data-i18n="btn_cancel">取消</button>
+                    <button id="detail-btn-save" class="btn btn-primary" data-i18n="btn_save">保存修改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Create New Ticket -->
+    <div id="modal-create" class="modal-overlay hidden">
+        <div class="modal-container create-modal">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <span class="create-modal-title" data-i18n="title_create_ticket">新建工单</span>
+                </div>
+                <div class="modal-header-right">
+                    <button class="btn-close" id="create-btn-close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <form id="form-create">
+                <div class="modal-body dual-column">
+                    <!-- Form Main Left Column -->
+                    <div class="form-main">
+                        <div class="form-row">
+                            <label for="create-title" class="required-label" data-i18n="label_ticket_title">工单标题</label>
+                            <input type="text" id="create-title" data-i18n-placeholder="placeholder_create_title" placeholder="输入简洁明了的工单标题" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <label for="create-body" data-i18n="label_detailed_desc">详细描述</label>
+                            <textarea id="create-body" data-i18n-placeholder="placeholder_create_body" placeholder="在这里描述工单的具体细节，支持 Markdown..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Form Attributes Right Column -->
+                    <aside class="form-sidebar">
+                        <div class="form-row">
+                            <label for="create-dir" class="required-label" data-i18n="label_category">工单分类/目录</label>
+                            <select id="create-dir" required>
+                                <!-- Will be dynamically loaded from config.sub_dirs -->
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <label for="create-id" class="required-label" data-i18n="label_ticket_id">工单 ID</label>
+                            <div class="id-input-group">
+                                <input type="text" id="create-id" data-i18n-placeholder="placeholder_ticket_id" placeholder="如: BUG-123" required>
+                                <button type="button" id="btn-generate-id" class="btn-icon" title="自动生成 ID">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <label for="create-priority" data-i18n="label_priority">优先级</label>
+                            <select id="create-priority">
+                                <option value="minor" selected>🔷 Minor</option>
+                                <option value="critical">🚨 Critical</option>
+                                <option value="major">🔶 Major</option>
+                                <option value="low">◽ Low</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <label for="create-owner" data-i18n="label_owner">负责人</label>
+                            <input type="text" id="create-owner" data-i18n-placeholder="placeholder_owner_simple" placeholder="工单负责人">
+                        </div>
+
+                        <div class="form-row">
+                            <label for="create-status" data-i18n="label_initial_status">初始状态</label>
+                            <select id="create-status">
+                                <option value="open" selected data-i18n="opt_status_open">待处理 (Open)</option>
+                                <option value="fixing" data-i18n="opt_status_fixing">处理中 (Fixing)</option>
+                            </select>
+                        </div>
+
+                        <!-- Dynamic Extra Fields for Create -->
+                        <div id="create-dynamic-fields-container"></div>
+                    </aside>
+                </div>
+
+                <div class="modal-footer">
+                    <div class="footer-right">
+                        <button type="button" id="create-btn-cancel" class="btn btn-secondary" data-i18n="btn_cancel">取消</button>
+                        <button type="submit" id="create-btn-submit" class="btn btn-primary" data-i18n="btn_create_now">立即创建</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container for Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Script Entry -->
+    <script src="app.js"></script>
+</body>
+</html>

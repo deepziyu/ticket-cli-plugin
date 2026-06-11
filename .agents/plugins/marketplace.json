@@ -1,0 +1,13 @@
+{
+  "name": "ticket-management-marketplace",
+  "plugins": [
+    {
+      "name": "ticket-management-plugin",
+      "source": {
+        "source": "local",
+        "path": "./plugin"
+      },
+      "description": "Generic ticket-like markdown management tool for humans and AI agents."
+    }
+  ]
+}

@@ -1,0 +1,822 @@
+/* ==========================================================================
+   Design System Variables & Global Styling (Inspired by Linear & Obsidian)
+   ========================================================================== */
+:root {
+    /* Color Palette */
+    --bg-main: #0b0c10;
+    --bg-surface: #12131a;
+    --bg-card: rgba(22, 25, 36, 0.7);
+    --bg-header: rgba(11, 12, 16, 0.85);
+    --bg-modal: #161722;
+    --bg-input: #1e202f;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-focus: #6366f1;
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    
+    /* Branding Accent Colors */
+    --primary-color: #6366f1;
+    --primary-hover: #4f46e5;
+    --primary-glow: rgba(99, 102, 241, 0.15);
+    
+    /* Status Colors */
+    --status-open-bg: rgba(56, 189, 248, 0.1);
+    --status-open-text: #38bdf8;
+    --status-fixing-bg: rgba(245, 158, 11, 0.1);
+    --status-fixing-text: #fbbf24;
+    --status-resolved-bg: rgba(16, 185, 129, 0.1);
+    --status-resolved-text: #34d399;
+    --status-passed-bg: rgba(99, 102, 241, 0.1);
+    --status-passed-text: #818cf8;
+    --status-rejected-bg: rgba(239, 68, 68, 0.1);
+    --status-rejected-text: #f87171;
+
+    /* Priorities colors */
+    --priority-critical-bg: rgba(239, 68, 68, 0.15);
+    --priority-critical-text: #f87171;
+    --priority-major-bg: rgba(245, 158, 11, 0.15);
+    --priority-major-text: #fbbf24;
+    --priority-minor-bg: rgba(59, 130, 246, 0.15);
+    --priority-minor-text: #60a5fa;
+    --priority-low-bg: rgba(156, 163, 175, 0.15);
+    --priority-low-text: #9ca3af;
+
+    /* Fonts & Radii */
+    --font-sans: 'Inter', 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: 'JetBrains Mono', Consolas, Monaco, monospace;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    
+    /* Shadow effects */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.7);
+    --glow-card: 0 0 1px 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    overflow: hidden;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar for Sleek Visuals */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ==========================================================================
+   App Layout & Header
+   ========================================================================== */
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+}
+
+.app-header {
+    height: 64px;
+    background-color: var(--bg-header);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    backdrop-filter: blur(12px);
+    z-index: 10;
+}
+
+.header-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.logo-text {
+    font-family: 'Outfit', var(--font-sans);
+    font-weight: 600;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+    background: linear-gradient(120deg, #fff, #9ca3af);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Inputs & Filters */
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.search-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+.search-box input {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: 8px 12px 8px 36px;
+    font-size: 0.875rem;
+    width: 200px;
+    transition: all 0.2s ease;
+}
+.search-box input:focus {
+    width: 280px;
+    border-color: var(--border-focus);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.filter-group {
+    display: flex;
+    gap: 8px;
+}
+.filter-group select {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.filter-group select:focus {
+    border-color: var(--border-focus);
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--font-sans);
+}
+.btn-primary {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+.btn-secondary {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+.btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+.btn-danger-link {
+    background: transparent;
+    border: none;
+    color: var(--status-rejected-text);
+    padding: 8px 0;
+}
+.btn-danger-link:hover {
+    color: #ef4444;
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Kanban View Structure
+   ========================================================================== */
+.kanban-container {
+    flex: 1;
+    display: flex;
+    gap: 20px;
+    padding: 24px;
+    overflow-x: auto;
+    align-items: flex-start;
+    background: radial-gradient(circle at 50% 0%, #111320 0%, var(--bg-main) 70%);
+}
+
+.kanban-column {
+    flex: 0 0 320px;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 112px);
+    background-color: var(--bg-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+/* Drag & Drop Area Visual Cue */
+.kanban-column.drag-over {
+    background-color: rgba(99, 102, 241, 0.03);
+    border-color: rgba(99, 102, 241, 0.35);
+    box-shadow: inset 0 0 12px rgba(99, 102, 241, 0.04);
+}
+
+.column-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 8px;
+}
+.column-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+.column-count {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.status-open { background-color: var(--status-open-text); }
+.status-fixing { background-color: var(--status-fixing-text); }
+.status-resolved { background-color: var(--status-resolved-text); }
+.status-passed { background-color: var(--status-passed-text); }
+.status-rejected { background-color: var(--status-rejected-text); }
+
+.column-cards {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    min-height: 150px;
+    padding-right: 2px;
+}
+
+/* ==========================================================================
+   Kanban Ticket Card
+   ========================================================================== */
+.ticket-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm), var(--glow-card);
+    padding: 16px;
+    cursor: grab;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.ticket-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    opacity: 0.7;
+    background-color: transparent;
+}
+.ticket-card[data-priority="critical"]::before { background-color: var(--status-rejected-text); }
+.ticket-card[data-priority="major"]::before { background-color: var(--status-fixing-text); }
+.ticket-card[data-priority="minor"]::before { background-color: var(--status-open-text); }
+
+.ticket-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.ticket-card:active {
+    cursor: grabbing;
+}
+.ticket-card.dragging {
+    opacity: 0.4;
+    transform: scale(0.96) rotate(1.5deg);
+}
+
+.card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.card-id {
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.card-type-tag {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+}
+
+.card-footer-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.priority-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.priority-critical { background: var(--priority-critical-bg); color: var(--priority-critical-text); }
+.priority-major { background: var(--priority-major-bg); color: var(--priority-major-text); }
+.priority-minor { background: var(--priority-minor-bg); color: var(--priority-minor-text); }
+.priority-low { background: var(--priority-low-bg); color: var(--priority-low-text); }
+
+.card-owner {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.owner-avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.card-time {
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Modals Overlay & Box Containers
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(4, 5, 8, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: opacity 0.25s ease;
+}
+.modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-container {
+    background-color: var(--bg-modal);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: 90vh;
+}
+@keyframes modalPop {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.detail-modal {
+    max-width: 1000px;
+    height: 85vh;
+}
+.create-modal {
+    max-width: 850px;
+    max-height: 80vh;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+.modal-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.ticket-id-badge {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+.ticket-type-tag {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    background-color: var(--primary-glow);
+    color: var(--primary-color);
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.create-modal-title {
+    font-family: 'Outfit', var(--font-sans);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.btn-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+}
+.btn-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.footer-right {
+    display: flex;
+    gap: 12px;
+}
+
+/* ==========================================================================
+   Detail Modal Dual-Column Structure
+   ========================================================================== */
+.modal-main {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    border-right: 1px solid var(--border-color);
+}
+
+.editable-title {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: 'Outfit', var(--font-sans);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    width: 100%;
+    outline: none;
+    border-bottom: 1px solid transparent;
+    transition: border-bottom-color 0.2s;
+    padding-bottom: 4px;
+}
+.editable-title:focus {
+    border-bottom-color: var(--border-color);
+}
+
+.markdown-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+.tab-btn:hover {
+    color: var(--text-primary);
+}
+.tab-btn.active {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--primary-color);
+}
+
+.description-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+}
+.description-editor {
+    flex: 1;
+    background-color: transparent;
+    border: none;
+    resize: none;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    outline: none;
+    width: 100%;
+}
+.description-preview {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+/* Markdown Rendering Custom Styles */
+.description-preview h1, .description-preview h2, .description-preview h3 {
+    margin-top: 16px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+.description-preview h1 { font-size: 1.4rem; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; }
+.description-preview h2 { font-size: 1.2rem; }
+.description-preview h3 { font-size: 1.05rem; }
+.description-preview p { margin-bottom: 12px; color: var(--text-secondary); }
+.description-preview ul, .description-preview ol { margin-left: 20px; margin-bottom: 12px; color: var(--text-secondary); }
+.description-preview code { font-family: var(--font-mono); font-size: 0.85em; background-color: rgba(255, 255, 255, 0.06); padding: 2px 4px; border-radius: 4px; }
+.description-preview pre { background-color: #0d0e15; padding: 12px; border-radius: var(--radius-md); overflow-x: auto; margin-bottom: 16px; border: 1px solid var(--border-color); }
+.description-preview pre code { background-color: transparent; padding: 0; }
+.description-preview blockquote { border-left: 3px solid var(--primary-color); padding-left: 12px; color: var(--text-muted); font-style: italic; margin-bottom: 16px; }
+
+/* Right Sidebar Properties */
+.modal-sidebar {
+    width: 320px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+.sidebar-title {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.meta-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.meta-field label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.meta-field select, .meta-field input, .meta-field textarea {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    outline: none;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+}
+.meta-field select:focus, .meta-field input:focus, .meta-field textarea:focus {
+    border-color: var(--border-focus);
+}
+.meta-field textarea {
+    resize: vertical;
+    min-height: 60px;
+    font-size: 0.8rem;
+}
+.meta-static-val {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    padding: 4px 0;
+}
+
+/* ==========================================================================
+   Create Modal Structure
+   ========================================================================== */
+.dual-column {
+    overflow-y: auto;
+}
+.form-main {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-right: 1px solid var(--border-color);
+}
+.form-sidebar {
+    width: 280px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.form-row label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+.form-row input, .form-row select, .form-row textarea {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+}
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+    border-color: var(--border-focus);
+}
+.form-row textarea {
+    resize: vertical;
+    min-height: 240px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.id-input-group {
+    display: flex;
+    gap: 8px;
+}
+.id-input-group input {
+    flex: 1;
+}
+.btn-icon {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-icon:hover {
+    color: var(--text-primary);
+    border-color: var(--border-focus);
+}
+
+.required-label::after {
+    content: ' *';
+    color: #ef4444;
+}
+
+/* ==========================================================================
+   Toast Notification Panels
+   ========================================================================== */
+.toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 200;
+    pointer-events: none;
+}
+.toast {
+    background-color: #1a1c29;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-md);
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    min-width: 280px;
+    pointer-events: auto;
+    animation: toastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.25s ease;
+}
+@keyframes toastIn {
+    from { transform: translateX(50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+.toast.fade-out {
+    opacity: 0;
+    transform: translateY(-20px);
+}
+.toast-success { border-left: 4px solid var(--status-resolved-text); }
+.toast-error { border-left: 4px solid var(--status-rejected-text); }
+.toast-info { border-left: 4px solid var(--primary-color); }
+
+.hidden {
+    display: none !important;
+}
