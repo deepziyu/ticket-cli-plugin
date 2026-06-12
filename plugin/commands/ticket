@@ -1,2 +1,42 @@
 #!/usr/bin/env bash
-node "$(dirname "$0")/ticket.js" "$@"
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO="deepziyu/ticket-cli-plugin"
+
+# 1. Detect platform
+case "$(uname -s)" in
+    Darwin) OS="darwin" ;;
+    Linux)  OS="linux" ;;
+    *)      echo "[ticket] Unsupported OS: $(uname -s)" >&2; exit 1 ;;
+esac
+
+case "$(uname -m)" in
+    x86_64|amd64) ARCH="amd64" ;;
+    arm64|aarch64) ARCH="arm64" ;;
+    *)            echo "[ticket] Unsupported arch: $(uname -m)" >&2; exit 1 ;;
+esac
+
+BINARY_NAME="ticket-${OS}-${ARCH}"
+BINARY_PATH="$SCRIPT_DIR/$BINARY_NAME"
+
+# 2. Lazy download if missing
+if [ ! -x "$BINARY_PATH" ]; then
+    echo "[ticket] Binary not found. Downloading $BINARY_NAME..." >&2
+    DOWNLOAD_URL="https://github.com/$REPO/releases/latest/download/$BINARY_NAME"
+
+    if command -v curl &>/dev/null; then
+        curl -fsSL "$DOWNLOAD_URL" -o "$BINARY_PATH"
+    elif command -v wget &>/dev/null; then
+        wget -q "$DOWNLOAD_URL" -O "$BINARY_PATH"
+    else
+        echo "[ticket] Error: Neither curl nor wget found." >&2
+        exit 1
+    fi
+
+    chmod +x "$BINARY_PATH"
+    echo "[ticket] Download complete." >&2
+fi
+
+# 3. Execute — exec replaces current process, preserving exit code
+exec "$BINARY_PATH" "$@"

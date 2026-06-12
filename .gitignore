@@ -1,6 +1,10 @@
-# Binaries and build artifacts
+# Binaries and build artifacts (downloaded by shim or built locally)
 plugin/commands/ticket.exe
 plugin/commands/ticket-*
+!plugin/commands/ticket
+!plugin/commands/ticket.cmd
+!plugin/commands/ticket.ps1
+!plugin/commands/.gitkeep
 dist/
 
 

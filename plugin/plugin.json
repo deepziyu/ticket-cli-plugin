@@ -1,10 +1,26 @@
 {
   "name": "ticket-management-plugin",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Generic ticket-like markdown management tool for humans and AI agents.",
   "author": {
-    "name": "deepziyu"
+    "name": "deepziyu",
+    "url": "https://github.com/deepziyu"
   },
+  "homepage": "https://github.com/deepziyu/ticket-cli-plugin",
+  "repository": "https://github.com/deepziyu/ticket-cli-plugin",
+  "license": "MIT",
   "commands": "./commands",
-  "skills": "./skills"
+  "skills": "./skills",
+  "interface": {
+    "displayName": "Ticket Management",
+    "shortDescription": "Generic ticket-like markdown management tool for humans and AI agents.",
+    "longDescription": "A plugin designed for collaborative environments combining AI Agents and Human Software Engineers. It parses and manages ticket/bug reports stored as Markdown files locally via a high-performance Go CLI.",
+    "developerName": "deepziyu",
+    "category": "Engineering",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/deepziyu/ticket-cli-plugin"
+  }
 }
