@@ -2,6 +2,7 @@ package ticket
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -499,6 +500,119 @@ Legacy issue here 3.
 
 	if _, err := os.Stat(filepath.Join(bugsDir, "BUG-003.md")); os.IsNotExist(err) {
 		t.Errorf("single file migration target BUG-003.md should be created")
+	}
+}
+
+func TestShimRobustness(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get working directory: %v", err)
+	}
+	pluginDir := filepath.Clean(filepath.Join(wd, "..", "plugin"))
+	commandsDir := filepath.Join(pluginDir, "commands")
+
+	var shimPath string
+	var binaryName string
+	goos := os.Getenv("GOOS")
+	if goos == "" {
+		if filepath.Separator == '\\' {
+			goos = "windows"
+		} else {
+			goos = "linux"
+		}
+	}
+
+	goarch := os.Getenv("GOARCH")
+	if goarch == "" {
+		goarch = "amd64"
+	}
+
+	if goos == "windows" {
+		shimPath = filepath.Join(commandsDir, "ticket.cmd")
+		binaryName = "ticket-windows-amd64.exe"
+	} else if goos == "darwin" {
+		shimPath = filepath.Join(commandsDir, "ticket")
+		binaryName = "ticket-darwin-" + goarch
+	} else {
+		shimPath = filepath.Join(commandsDir, "ticket")
+		binaryName = "ticket-linux-" + goarch
+	}
+
+	binaryPath := filepath.Join(commandsDir, binaryName)
+
+	// Backup existing binary if it exists
+	backupPath := binaryPath + ".bak_test"
+	hasBackup := false
+	if _, err := os.Stat(binaryPath); err == nil {
+		if err := os.Rename(binaryPath, backupPath); err != nil {
+			t.Fatalf("failed to backup existing binary: %v", err)
+		}
+		hasBackup = true
+	}
+
+	defer func() {
+		os.Remove(binaryPath)
+		if hasBackup {
+			os.Rename(backupPath, binaryPath)
+		}
+	}()
+
+	// 1. Create a 0-byte corrupt file
+	if err := os.WriteFile(binaryPath, []byte(""), 0755); err != nil {
+		t.Fatalf("failed to create 0-byte corrupt file: %v", err)
+	}
+
+	// 2. Execute the shim to test self-healing
+	var cmd *exec.Cmd
+	if strings.HasSuffix(shimPath, ".cmd") {
+		cmd = exec.Command("cmd", "/c", shimPath, "--help")
+	} else {
+		os.Chmod(shimPath, 0755)
+		cmd = exec.Command(shimPath, "--help")
+	}
+
+	outputBytes, _ := cmd.CombinedOutput()
+	output := string(outputBytes)
+
+	// Verify size of the binary file: it must NOT be 0 bytes anymore
+	info, statErr := os.Stat(binaryPath)
+	if statErr == nil {
+		if info.Size() == 0 {
+			t.Errorf("corrupt 0-byte binary was not cleaned or self-healed. Output: %s", output)
+		} else {
+			t.Logf("Shim self-healing passed! Downloaded a valid binary with size %d", info.Size())
+		}
+	} else if os.IsNotExist(statErr) {
+		t.Logf("Shim self-healing passed! The 0-byte corrupt binary was cleaned up (network is disconnected, which is expected under blocked network)")
+	} else {
+		t.Errorf("unexpected stat error: %v", statErr)
+	}
+
+	// 3. For Windows, also test ticket.ps1
+	if goos == "windows" {
+		ps1Path := filepath.Join(commandsDir, "ticket.ps1")
+		// Clean and write 0-byte file again
+		os.Remove(binaryPath)
+		if err := os.WriteFile(binaryPath, []byte(""), 0755); err != nil {
+			t.Fatalf("failed to create 0-byte corrupt file for ps1: %v", err)
+		}
+
+		psCmd := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps1Path, "--help")
+		psOutputBytes, _ := psCmd.CombinedOutput()
+		psOutput := string(psOutputBytes)
+
+		psInfo, psStatErr := os.Stat(binaryPath)
+		if psStatErr == nil {
+			if psInfo.Size() == 0 {
+				t.Errorf("corrupt 0-byte binary was not cleaned or self-healed by ps1. Output: %s", psOutput)
+			} else {
+				t.Logf("PS1 Shim self-healing passed! Downloaded a valid binary with size %d", psInfo.Size())
+			}
+		} else if os.IsNotExist(psStatErr) {
+			t.Logf("PS1 Shim self-healing passed! The 0-byte corrupt binary was cleaned up")
+		} else {
+			t.Errorf("unexpected stat error for ps1: %v", psStatErr)
+		}
 	}
 }
 
