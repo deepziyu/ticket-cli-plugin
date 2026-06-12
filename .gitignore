@@ -1,8 +1,8 @@
 # Binaries and build artifacts
-plugin/commands/ticket
 plugin/commands/ticket.exe
 plugin/commands/ticket-*
 dist/
+
 
 # OS files
 .DS_Store

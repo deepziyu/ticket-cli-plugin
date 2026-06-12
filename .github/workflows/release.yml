@@ -23,6 +23,7 @@ jobs:
 
       - name: Build and Package All Plugins
         run: |
+          make build-all
           make package-all
 
       - name: Create GitHub Release
@@ -31,6 +32,7 @@ jobs:
           files: |
             dist/*.zip
             dist/*.tar.gz
+            plugin/commands/ticket-*
           draft: false
           prerelease: false
         env:

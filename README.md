@@ -57,15 +57,21 @@ Claude Code natively supports loading plugins via `.claude-plugin/plugin.json`:
 
 #### C. As an OpenAI Codex CLI Plugin
 
-Codex CLI features a native plugin and marketplace manager. It supports installing plugins via local paths or pre-compiled archive packages.
+Codex CLI features a native plugin and marketplace manager. We recommend installing it using one of the following methods:
 
-> [!WARNING]
-> **Limitations on Direct Git Repository Installation**:
-> Because the compiled executable binaries (`ticket` / `ticket.exe`) are excluded from the Git repository, **do not** use `codex plugin marketplace add <git-url>` to register the remote Git repo. Otherwise, the installed plugin will lack the execution binary and fail to run.
-> Please use one of the two recommended installation methods below.
+##### Method 1: Direct Install from GitHub Repo (Recommended, Self-Bootstrapping)
+This is the easiest installation method. The plugin includes a lightweight cross-platform JS bootstrap script that automatically downloads the pre-compiled binary matching your platform architecture from GitHub Releases on first run:
+1. **Register the Git repository as a marketplace**:
+   ```bash
+   codex plugin marketplace add https://github.com/deepziyu/ticket-cli-plugin.git
+   ```
+2. **Install and enable the plugin**:
+   ```bash
+   codex plugin add ticket-management-plugin@ticket-management-marketplace
+   ```
 
-##### Method 1: Local Build & Install (Recommended for Developers)
-If you have cloned this repository locally:
+##### Method 2: Local Source Build & Install (For Developer Debugging)
+If you want to modify or compile the Go source code yourself:
 1. **Build the binary locally**:
    Build the executable in the project root:
    ```powershell
@@ -76,29 +82,14 @@ If you have cloned this repository locally:
    make build
    ```
    This generates the platform-specific binary under `plugin/commands/`.
-2. **Register the project root directory as a marketplace**:
+2. **Register the local project root directory as a marketplace**:
    ```bash
-   # Replace /path/to/ with the actual absolute path to the repo root folder (do not append /plugin)
+   # Replace /path/to/ with the actual absolute path to the repo root folder
    codex plugin marketplace add /path/to/ticket-cli-plugin
    ```
 3. **Install and enable the plugin**:
    ```bash
    codex plugin add ticket-management-plugin@ticket-cli-plugin
-   ```
-
-##### Method 2: Install via Pre-compiled Release Archive (Recommended for End-Users)
-If you do not want to install Go and compile the tool yourself:
-1. **Download the Release Archive**:
-   Go to the GitHub Releases page and download the pre-compiled zip or tar.gz plugin package matching your platform (e.g., `ticket-management-plugin-windows-amd64.zip`).
-2. **Extract to a local directory**:
-   Extract the archive to your chosen local directory (e.g., `D:\tools\ticket-plugin\`). This will produce a `plugin` directory containing the pre-compiled `commands/ticket` or `commands/ticket.exe` file.
-3. **Register the extracted directory as a marketplace**:
-   ```bash
-   codex plugin marketplace add D:\tools\ticket-plugin
-   ```
-4. **Install and enable the plugin**:
-   ```bash
-   codex plugin add ticket-management-plugin@ticket-plugin
    ```
 
 
