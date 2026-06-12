@@ -151,11 +151,21 @@ ticket validate ./bugs
 If `--format json` is provided and verification passes, it returns a blank `[]` array.
 
 ### 6. Migrate Legacy Tickets (`ticket migrate`)
-Scans a folder, parses legacy state suffixes from filenames (e.g., `-pass`, `-passed`, `-fail`), writes them to the Frontmatter `status` field, and renames files to achieve name immutability.
+Scans a directory recursively, or targets a single file path directly. It parses legacy state suffixes from filenames (e.g., `-pass`, `-passed`, `-fail`), transitions them to the Frontmatter `status` field, and renames files to achieve name immutability.
 ```bash
+# Migrate a directory or a single file
 ticket migrate ./bugs
+ticket migrate ./bugs/BUG-001-pass.md
+
+# Preview changes without modifying files on disk
+ticket migrate ./bugs --dry-run
+
+# Only migrate ticket files that fail schema validation
+ticket migrate ./bugs --only-invalid
 ```
-If `--format json` is set, a JSON array detailing every migration action is returned.
+*The migrate command guarantees the following key features:*
+- **Idempotency & Minimal Write**: If the file is already standardized and has no metadata changes, it will be skipped entirely. No disk write is performed, and file modification times remain unchanged to prevent git workspace clutter.
+- **Rich Output Options**: When `--format json` is provided, a detailed JSON array is returned, showing `file`, `action`, `reason`, and `changed_fields` for each file. On console output, skipped files display cleanly as `[skipped: already standardized]`.
 
 ---
 

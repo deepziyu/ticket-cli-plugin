@@ -436,9 +436,11 @@ func handleValidate() {
 func handleMigrate() {
 	fs := flag.NewFlagSet("migrate", flag.ExitOnError)
 	format := fs.String("format", "text", "Output format (text, json)")
+	dryRun := fs.Bool("dry-run", false, "Preview migrations without writing to disk")
+	onlyInvalid := fs.Bool("only-invalid", false, "Only migrate files that fail validation")
 
 	fs.Usage = func() {
-		fmt.Println("Usage: ticket migrate [dir] [flags]")
+		fmt.Println("Usage: ticket migrate [file-or-dir] [flags]")
 		fs.PrintDefaults()
 	}
 
@@ -448,17 +450,22 @@ func handleMigrate() {
 	}
 
 	if fs.NArg() > 1 {
-		fmt.Fprintf(os.Stderr, "Error: too many arguments. Expected at most 1 directory, got: %v\n", fs.Args())
+		fmt.Fprintf(os.Stderr, "Error: too many arguments. Expected at most 1 file or directory, got: %v\n", fs.Args())
 		fs.Usage()
 		os.Exit(1)
 	}
 
-	dir := "."
+	target := "."
 	if fs.NArg() > 0 {
-		dir = fs.Arg(0)
+		target = fs.Arg(0)
 	}
 
-	results, err := ticket.MigrateTickets(dir)
+	opts := ticket.MigrateOptions{
+		DryRun:      *dryRun,
+		OnlyInvalid: *onlyInvalid,
+	}
+
+	results, err := ticket.MigrateTicketsWithOptions(target, opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error running migration: %v\n", err)
 		os.Exit(1)

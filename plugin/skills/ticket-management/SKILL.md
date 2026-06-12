@@ -89,14 +89,19 @@ Always run the `ticket` command inside the environment instead of editing file f
     ```
 
 ### 6. Migrate Legacy Tickets (`ticket migrate`)
-*   **Syntax**: `ticket migrate [flags] [dir_path]`
-*   **Description**: Scans a directory for legacy tickets (e.g., filenames with suffixes like `-pass.md`, `-fail.md`) and automatically:
-    1. **Parses Legacy Suffixes**: Extracts the status from filenames and writes it to the frontmatter `status` field.
-    2. **Enforces Immutability**: Renames the files to remove suffixes (skipping if target file already exists to avoid overwriting).
-    3. **Populates Missing Metadata**: Adds missing frontmatter headers and parses the first `#` heading for the title if missing.
+*   **Syntax**: `ticket migrate [flags] [file_or_dir_path]`
+*   **Description**: Scans a directory or targets a single file path for migration. It parses legacy state suffixes from filenames (e.g., `-pass`, `-passed`, `-fail`), transitions them to the frontmatter `status` field, and renames files to remove suffixes to achieve name immutability.
+    *   **Idempotency & Minimal Write**: If the file is already standardized and has no metadata changes, it will be skipped entirely. No disk write is performed, and file modification times remain unchanged to prevent git workspace clutter.
+*   **Flags**:
+    *   `--dry-run`: Preview changes without modifying files on disk.
+    *   `--only-invalid`: Only migrate ticket files that fail schema validation.
+    *   `--format <text|json>`: Output format. Returns a detailed JSON array showing `file`, `action`, `reason`, and `changed_fields` when `json` is specified.
 *   **Example**:
     ```bash
+    # Migrate a directory
     ticket migrate ./bugs
+    # Preview migration
+    ticket migrate --dry-run ./bugs
     ```
 
 ### 7. Run Kanban Web Dashboard (`ticket dashboard`)

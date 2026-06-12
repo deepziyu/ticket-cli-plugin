@@ -47,14 +47,14 @@ func ParseFile(filePath string) (*TicketMeta, string, error) {
 	return &meta, bodyStr, nil
 }
 
-// WriteFile writes the ticket metadata and markdown body back to the file.
-func WriteFile(filePath string, meta *TicketMeta, body string) error {
+// RenderTicket renders the ticket metadata and markdown body to a byte array.
+func RenderTicket(meta *TicketMeta, body string) ([]byte, error) {
 	var yamlBuf bytes.Buffer
 	yamlEncoder := yaml.NewEncoder(&yamlBuf)
 	yamlEncoder.SetIndent(2)
 
 	if err := yamlEncoder.Encode(meta); err != nil {
-		return fmt.Errorf("failed to marshal yaml: %w", err)
+		return nil, fmt.Errorf("failed to marshal yaml: %w", err)
 	}
 	yamlEncoder.Close()
 
@@ -68,9 +68,19 @@ func WriteFile(filePath string, meta *TicketMeta, body string) error {
 	cleanBody := strings.TrimLeft(body, "\r\n")
 	out.WriteString(cleanBody)
 
+	return []byte(out.String()), nil
+}
+
+// WriteFile writes the ticket metadata and markdown body back to the file.
+func WriteFile(filePath string, meta *TicketMeta, body string) error {
+	rendered, err := RenderTicket(meta, body)
+	if err != nil {
+		return err
+	}
+
 	// Write back to file atomically (write to temp file and rename)
 	tempPath := filePath + ".tmp"
-	if err := os.WriteFile(tempPath, []byte(out.String()), 0644); err != nil {
+	if err := os.WriteFile(tempPath, rendered, 0644); err != nil {
 		return fmt.Errorf("failed to write temp file: %w", err)
 	}
 
@@ -128,7 +138,12 @@ func splitFrontmatter(content string) (string, string, error) {
 		return "", "", fmt.Errorf("frontmatter delimiter is not closed")
 	}
 
-	return frontmatter.join(), body.joinWithTrailing(), nil
+	bodyStr := body.joinWithTrailing()
+	if strings.HasSuffix(content, "\n") && !strings.HasSuffix(bodyStr, "\n") && len(bodyStr) > 0 {
+		bodyStr += "\n"
+	}
+
+	return frontmatter.join(), bodyStr, nil
 }
 
 type lines []string

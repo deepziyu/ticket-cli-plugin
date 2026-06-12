@@ -151,11 +151,21 @@ ticket validate ./bugs
 若指定了 `--format json` 且校验通过，将返回 `[]` 数组。
 
 ### 6. 批量迁移旧工单 (`ticket migrate`)
-扫描指定目录下所有工单文件，解析文件名中的 legacy 状态后缀（如 `-pass`、`-passed`、`-fail` 等）写入 Frontmatter `status` 字段中，并自动重命名文件，补齐缺失的元数据（如 `title`、`type`、时间字段等）。
+扫描指定目录下所有工单文件，或直接指定单个工单文件路径。解析文件名中的 legacy 状态后缀（如 `-pass`、`-passed`、`-fail` 等）写入 Frontmatter `status` 字段中，并自动重命名文件，补齐缺失的元数据（如 `title`、`type`、时间字段等）。
 ```bash
+# 扫描目录或单个文件进行迁移
 ticket migrate ./bugs
+ticket migrate ./bugs/BUG-001-pass.md
+
+# 仅预览迁移计划而不修改磁盘
+ticket migrate ./bugs --dry-run
+
+# 仅迁移在校验中为无效（即不符合规范）的工单文件
+ticket migrate ./bugs --only-invalid
 ```
-若指定了 `--format json`，将以 JSON 数组返回每份文件的详细迁移结果（包括新旧路径、ID、动作等）。
+*本工具的迁移保证以下两个优秀特性：*
+- **幂等性与最小写入**：如果工单已标准化且无任何内容或状态变化，它在二次运行时将被完全跳过（Skipped），不触发任何磁盘写回，亦不会改变文件的修改时间，避免污染 Git 工作区。
+- **丰富的输出格式**：若指定了 `--format json`，将返回每个文件迁移状态的 JSON 报告，包含 `file`、`action`、`reason`、`changed_fields` 等属性。若在控制台输出，跳过的文件会清晰打印为 `[skipped: already standardized]`。
 
 ---
 

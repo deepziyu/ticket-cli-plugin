@@ -124,7 +124,13 @@ func PrintMigrationResults(w io.Writer, results []MigrationResult, format string
 
 	fmt.Fprintf(w, "Migrated %d ticket(s):\n", len(results))
 	for _, res := range results {
-		if res.OriginalPath == res.NewPath {
+		if res.Action == "skipped" {
+			reasonStr := ""
+			if res.Reason != "" {
+				reasonStr = ": " + strings.ReplaceAll(res.Reason, "_", " ")
+			}
+			fmt.Fprintf(w, "  - [skipped%s] %s\n", reasonStr, res.OriginalPath)
+		} else if res.OriginalPath == res.NewPath {
 			fmt.Fprintf(w, "  - [%s] %s (ID: %s, Status: %s)\n", res.Action, res.OriginalPath, res.ID, res.Status)
 		} else {
 			fmt.Fprintf(w, "  - [%s] %s -> %s (ID: %s, Status: %s)\n", res.Action, res.OriginalPath, res.NewPath, res.ID, res.Status)

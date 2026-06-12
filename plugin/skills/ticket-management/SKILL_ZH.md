@@ -89,16 +89,19 @@ description: Manage, query, transition, and validate ticket-like Markdown files 
     ```
 
 ### 6. 批量迁移旧工单 (`ticket migrate`)
-*   **指令**：`ticket migrate [flags] [dir_path]`
-*   **功能说明**：扫描目录下所有以 `BUG-`、`TASK-` 或 `TICKET-` 开头的 Markdown 文件，并自动执行以下升级与迁移操作：
-    1. **解析旧文件名状态后缀**：若文件名包含旧状态（如 `-pass`、`-passed`、`-fail`、`-failed`、`-rejected` 等），将其自动映射并写入 Frontmatter `status` 字段中。
-    2. **自动重命名去后缀**：移除文件名中的状态后缀以实现文件名 Immutable（不变）。若目标去后缀文件名已存在，则打印冲突并跳过重命名以防止覆盖。
-    3. **自动补全 Frontmatter**：补齐缺少的 YAML 头。若 Frontmatter 中没有 `title`，工具会主动解析正文首个 `#` 标题。
+*   **指令**：`ticket migrate [flags] [file_or_dir_path]`
+*   **功能说明**：扫描目录下或针对单个文件进行迁移。解析文件名中的 legacy 状态后缀（如 `-pass`、`-passed`、`-fail` 等）写入 Frontmatter `status` 字段中，并自动重命名文件，补齐缺失的元数据（如 `title`、`type`、时间字段等）。
+    *   **幂等性与最小写入**：如果工单已标准化且无任何内容或状态变化，它在二次运行时将被完全跳过（Skipped），不触发任何磁盘写回，亦不会改变文件的修改时间，避免污染 Git 工作区。
 *   **参数说明**：
-    *   `--format <text|json>`：输出格式。指定 `json` 时以结构化数组形式返回所有的迁移明细（包含新旧路径、ID、动作等）。
+    *   `--dry-run`：仅预览迁移计划而不修改磁盘。
+    *   `--only-invalid`：仅迁移在校验中为无效（即不符合规范）的工单文件。
+    *   `--format <text|json>`：输出格式。指定 `json` 时以结构化数组形式返回所有的迁移明细（包含 `file`、`action`、`reason`、`changed_fields` 等属性）。
 *   **示例**：
     ```bash
+    # 迁移目录
     ticket migrate ./bugs
+    # 仅预览迁移
+    ticket migrate --dry-run ./bugs
     ```
 
 ### 7. 启动可视化看板面板 (`ticket dashboard`)

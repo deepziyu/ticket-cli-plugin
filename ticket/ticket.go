@@ -1,6 +1,7 @@
 package ticket
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -240,6 +241,104 @@ func ValidateTickets(dir string) ([]ValidationError, error) {
 	return errors, nil
 }
 
+// ValidateSingleTicket validates a single ticket file against schema rules.
+func ValidateSingleTicket(filePath string, config *TicketConfig) ([]ValidationError, error) {
+	var errors []ValidationError
+
+	name := filepath.Base(filePath)
+	currentDir := filepath.Dir(filePath)
+
+	absD, err := filepath.Abs(currentDir)
+	var dirBase string
+	if err != nil {
+		dirBase = filepath.Base(currentDir)
+	} else {
+		dirBase = filepath.Base(absD)
+	}
+	dirBaseLower := strings.ToLower(dirBase)
+
+	// Check if it's named like a ticket
+	nameUpper := strings.ToUpper(name)
+	isTicketName := strings.HasPrefix(nameUpper, "BUG-") || strings.HasPrefix(nameUpper, "TASK-") || strings.HasPrefix(nameUpper, "TICKET-")
+
+	meta, _, err := ParseFile(filePath)
+	if err != nil {
+		if isTicketName {
+			errors = append(errors, ValidationError{
+				FilePath: filepath.ToSlash(filePath),
+				ErrorMsg: fmt.Sprintf("failed to parse ticket file: %v", err),
+			})
+		}
+		return errors, nil
+	}
+
+	if meta.ID == "" {
+		if isTicketName {
+			errors = append(errors, ValidationError{
+				FilePath: filepath.ToSlash(filePath),
+				ErrorMsg: "missing 'id' field in frontmatter",
+			})
+		}
+		return errors, nil
+	}
+
+	// 1. Validate type matches parent directory base name
+	if !strings.EqualFold(meta.Type, dirBaseLower) {
+		errors = append(errors, ValidationError{
+			FilePath: filepath.ToSlash(filePath),
+			ErrorMsg: fmt.Sprintf("invalid ticket type '%s', must match directory name '%s'", meta.Type, dirBaseLower),
+		})
+	}
+
+	// 2. Validate status values
+	validStatuses := map[string]bool{
+		"open":     true,
+		"fixing":   true,
+		"resolved": true,
+		"passed":   true,
+		"rejected": true,
+	}
+	if !validStatuses[meta.Status] {
+		errors = append(errors, ValidationError{
+			FilePath: filepath.ToSlash(filePath),
+			ErrorMsg: fmt.Sprintf("invalid status '%s' (must be open, fixing, resolved, passed, or rejected)", meta.Status),
+		})
+	}
+
+	// 3. Validate priority values if present
+	if meta.Priority != "" {
+		validPriorities := map[string]bool{
+			"critical": true,
+			"major":    true,
+			"minor":    true,
+			"low":      true,
+		}
+		if !validPriorities[meta.Priority] {
+			errors = append(errors, ValidationError{
+				FilePath: filepath.ToSlash(filePath),
+				ErrorMsg: fmt.Sprintf("invalid priority '%s' (must be critical, major, minor, or low)", meta.Priority),
+			})
+		}
+	}
+
+	// 4. Validate required extra fields from ticket.yaml
+	if config != nil {
+		for _, extraF := range config.ExtraFields {
+			if extraF.Required {
+				val, exists := getFieldValue(meta, extraF.Name)
+				if !exists || strings.TrimSpace(val) == "" {
+					errors = append(errors, ValidationError{
+						FilePath: filepath.ToSlash(filePath),
+						ErrorMsg: fmt.Sprintf("missing required extra field '%s' specified in ticket.yaml", extraF.Name),
+					})
+				}
+			}
+		}
+	}
+
+	return errors, nil
+}
+
 func validateDir(currentDir string, parentConfig *TicketConfig, errors *[]ValidationError) error {
 	config, err := LoadConfig(currentDir)
 	if err != nil {
@@ -256,15 +355,6 @@ func validateDir(currentDir string, parentConfig *TicketConfig, errors *[]Valida
 		return err
 	}
 
-	absD, err := filepath.Abs(currentDir)
-	var dirBase string
-	if err != nil {
-		dirBase = filepath.Base(currentDir)
-	} else {
-		dirBase = filepath.Base(absD)
-	}
-	dirBaseLower := strings.ToLower(dirBase)
-
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -276,82 +366,11 @@ func validateDir(currentDir string, parentConfig *TicketConfig, errors *[]Valida
 		}
 
 		path := filepath.Join(currentDir, name)
-
-		// Check if it's named like a ticket
-		isTicketName := strings.HasPrefix(name, "BUG-") || strings.HasPrefix(name, "TASK-") || strings.HasPrefix(name, "TICKET-")
-
-		meta, _, err := ParseFile(path)
+		fileErrors, err := ValidateSingleTicket(path, config)
 		if err != nil {
-			if isTicketName {
-				*errors = append(*errors, ValidationError{
-					FilePath: filepath.ToSlash(path),
-					ErrorMsg: fmt.Sprintf("failed to parse ticket file: %v", err),
-				})
-			}
-			continue
+			return err
 		}
-
-		if meta.ID == "" {
-			if isTicketName {
-				*errors = append(*errors, ValidationError{
-					FilePath: filepath.ToSlash(path),
-					ErrorMsg: "missing 'id' field in frontmatter",
-				})
-			}
-			continue
-		}
-
-		// 1. Validate type matches parent directory base name
-		if !strings.EqualFold(meta.Type, dirBaseLower) {
-			*errors = append(*errors, ValidationError{
-				FilePath: filepath.ToSlash(path),
-				ErrorMsg: fmt.Sprintf("invalid ticket type '%s', must match directory name '%s'", meta.Type, dirBaseLower),
-			})
-		}
-
-		// 2. Validate status values
-		validStatuses := map[string]bool{
-			"open":     true,
-			"fixing":   true,
-			"resolved": true,
-			"passed":   true,
-			"rejected": true,
-		}
-		if !validStatuses[meta.Status] {
-			*errors = append(*errors, ValidationError{
-				FilePath: filepath.ToSlash(path),
-				ErrorMsg: fmt.Sprintf("invalid status '%s' (must be open, fixing, resolved, passed, or rejected)", meta.Status),
-			})
-		}
-
-		// 3. Validate priority values if present
-		if meta.Priority != "" {
-			validPriorities := map[string]bool{
-				"critical": true,
-				"major":    true,
-				"minor":    true,
-				"low":      true,
-			}
-			if !validPriorities[meta.Priority] {
-				*errors = append(*errors, ValidationError{
-					FilePath: filepath.ToSlash(path),
-					ErrorMsg: fmt.Sprintf("invalid priority '%s' (must be critical, major, minor, or low)", meta.Priority),
-				})
-			}
-		}
-
-		// 4. Validate required extra fields from ticket.yaml
-		for _, extraF := range config.ExtraFields {
-			if extraF.Required {
-				val, exists := getFieldValue(meta, extraF.Name)
-				if !exists || strings.TrimSpace(val) == "" {
-					*errors = append(*errors, ValidationError{
-						FilePath: filepath.ToSlash(path),
-						ErrorMsg: fmt.Sprintf("missing required extra field '%s' specified in ticket.yaml", extraF.Name),
-					})
-				}
-			}
-		}
+		*errors = append(*errors, fileErrors...)
 	}
 
 	// Recurse into configured sub_dirs
@@ -407,27 +426,67 @@ func getFieldValue(meta *TicketMeta, name string) (string, bool) {
 
 // MigrationResult represents the outcome of migrating a single ticket file.
 type MigrationResult struct {
-	OriginalPath string `json:"original_path"`
-	NewPath      string `json:"new_path"`
-	ID           string `json:"id"`
-	Title        string `json:"title"`
-	Status       string `json:"status"`
-	Action       string `json:"action"` // "renamed & updated", "updated frontmatter", "skipped (conflict)"
+	OriginalPath  string   `json:"original_path"`
+	NewPath       string   `json:"new_path"`
+	ID            string   `json:"id"`
+	Title         string   `json:"title"`
+	Status        string   `json:"status"`
+	Action        string   `json:"action"` // "renamed & updated", "updated frontmatter", "skipped"
+	File          string   `json:"file"`
+	Reason        string   `json:"reason,omitempty"` // "already_standardized", "conflict", 等
+	ChangedFields []string `json:"changed_fields"`
+}
+
+// MigrateOptions defines parameters for the ticket migration process.
+type MigrateOptions struct {
+	DryRun      bool
+	OnlyInvalid bool
 }
 
 // MigrateTickets scans the target directory and migrates legacy markdown tickets to standard format.
 func MigrateTickets(dir string) ([]MigrationResult, error) {
+	return MigrateTicketsWithOptions(dir, MigrateOptions{})
+}
+
+// MigrateTicketsWithOptions scans the target path (file or directory) and migrates tickets.
+func MigrateTicketsWithOptions(targetPath string, opts MigrateOptions) ([]MigrationResult, error) {
 	var results []MigrationResult
-	if err := migrateDir(dir, nil, &results); err != nil {
+
+	fi, err := os.Stat(targetPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to access target path %s: %w", targetPath, err)
+	}
+
+	if !fi.IsDir() {
+		// It's a single file.
+		currentDir := filepath.Dir(targetPath)
+		config, err := LoadConfig(currentDir)
+		if err != nil {
+			return nil, err
+		}
+
+		res, processed, err := migrateSingleFile(targetPath, config, opts)
+		if err != nil {
+			return nil, err
+		}
+		if processed {
+			results = append(results, res)
+		}
+		return results, nil
+	}
+
+	// It's a directory.
+	if err := migrateDirWithOptions(targetPath, nil, opts, &results); err != nil {
 		return nil, err
 	}
+
 	if results == nil {
 		results = []MigrationResult{}
 	}
 	return results, nil
 }
 
-func migrateDir(currentDir string, parentConfig *TicketConfig, results *[]MigrationResult) error {
+func migrateDirWithOptions(currentDir string, parentConfig *TicketConfig, opts MigrateOptions, results *[]MigrationResult) error {
 	config, err := LoadConfig(currentDir)
 	if err != nil {
 		return err
@@ -442,15 +501,6 @@ func migrateDir(currentDir string, parentConfig *TicketConfig, results *[]Migrat
 		return err
 	}
 
-	absD, err := filepath.Abs(currentDir)
-	var dirBase string
-	if err != nil {
-		dirBase = filepath.Base(currentDir)
-	} else {
-		dirBase = filepath.Base(absD)
-	}
-	dirBaseLower := strings.ToLower(dirBase)
-
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -461,142 +511,14 @@ func migrateDir(currentDir string, parentConfig *TicketConfig, results *[]Migrat
 			continue
 		}
 
-		// Standard tickets start with BUG-, TASK-, TICKET- (case-insensitive)
-		nameUpper := strings.ToUpper(name)
-		isTicketName := strings.HasPrefix(nameUpper, "BUG-") || strings.HasPrefix(nameUpper, "TASK-") || strings.HasPrefix(nameUpper, "TICKET-")
-		if !isTicketName {
-			continue
-		}
-
 		filePath := filepath.Join(currentDir, name)
-		
-		// Parse legacy filename and potential status
-		extractedID, legacyStatus, renamed := parseLegacyFilename(name)
-		
-		meta, body, err := ParseFile(filePath)
+		res, processed, err := migrateSingleFile(filePath, config, opts)
 		if err != nil {
-			// Even if parse fails, we can try to recover if it was due to invalid YAML frontmatter.
-			// Let's read the file content directly.
-			contentBytes, readErr := os.ReadFile(filePath)
-			if readErr != nil {
-				continue
-			}
-			// Treat the whole file as body
-			body = string(contentBytes)
-			meta = &TicketMeta{}
+			return err
 		}
-
-		// Initialize metadata if empty
-		if meta == nil {
-			meta = &TicketMeta{}
+		if processed {
+			*results = append(*results, res)
 		}
-
-		originalMeta := *meta
-
-		// Set or enrich metadata
-		if meta.ID == "" {
-			meta.ID = extractedID
-		}
-		
-		// Extract title from body if empty
-		if meta.Title == "" {
-			meta.Title = extractTitleFromBody(body, meta.ID)
-			if meta.Title == "" {
-				meta.Title = "Untitled Ticket"
-			}
-		}
-
-		// Set type based on directory
-		meta.Type = dirBaseLower
-
-		// Determine status
-		if legacyStatus != "" {
-			meta.Status = legacyStatus
-		} else if meta.Status == "" {
-			meta.Status = "open"
-		}
-
-		// Set priority if empty
-		if meta.Priority == "" {
-			meta.Priority = "minor"
-		}
-
-		// Times
-		nowStr := time.Now().Format("2006-01-02 15:04")
-		if meta.CreatedAt == "" {
-			// Get file creation/modification time as a fallback
-			fileInfo, statErr := os.Stat(filePath)
-			if statErr == nil {
-				meta.CreatedAt = fileInfo.ModTime().Format("2006-01-02 15:04")
-			} else {
-				meta.CreatedAt = nowStr
-			}
-		}
-		
-		meta.UpdatedAt = nowStr
-
-		// Handle resolved_at terminal status logic
-		isTerminal := meta.Status == "passed" || meta.Status == "rejected"
-		if isTerminal {
-			if meta.ResolvedAt == "" {
-				meta.ResolvedAt = nowStr
-			}
-		} else {
-			meta.ResolvedAt = ""
-		}
-
-		// Check if we need to write changes
-		metaChanged := originalMeta.ID != meta.ID ||
-			originalMeta.Title != meta.Title ||
-			originalMeta.Type != meta.Type ||
-			originalMeta.Status != meta.Status ||
-			originalMeta.Priority != meta.Priority ||
-			originalMeta.ResolvedAt != meta.ResolvedAt ||
-			originalMeta.CreatedAt != meta.CreatedAt
-
-		targetFileName := meta.ID + ".md"
-		targetFilePath := filepath.Join(currentDir, targetFileName)
-
-		result := MigrationResult{
-			OriginalPath: filepath.ToSlash(filePath),
-			ID:           meta.ID,
-			Title:        meta.Title,
-			Status:       meta.Status,
-		}
-
-		if renamed && targetFilePath != filePath {
-			// Check conflict
-			if _, err := os.Stat(targetFilePath); err == nil {
-				result.NewPath = filepath.ToSlash(filePath)
-				result.Action = "skipped (conflict: target file already exists)"
-				*results = append(*results, result)
-				continue
-			}
-
-			// Write to new file and delete old file
-			if err := WriteFile(targetFilePath, meta, body); err != nil {
-				return fmt.Errorf("failed to write migrated file %s: %w", targetFilePath, err)
-			}
-			if err := os.Remove(filePath); err != nil {
-				return fmt.Errorf("failed to remove legacy file %s: %w", filePath, err)
-			}
-
-			result.NewPath = filepath.ToSlash(targetFilePath)
-			result.Action = "renamed & updated"
-		} else {
-			// No rename, just update metadata if changed
-			if metaChanged || !strings.Contains(body, "id:") { // write anyway if frontmatter was missing
-				if err := WriteFile(filePath, meta, body); err != nil {
-					return fmt.Errorf("failed to write migrated file %s: %w", filePath, err)
-				}
-				result.Action = "updated frontmatter"
-			} else {
-				result.Action = "no change needed"
-			}
-			result.NewPath = filepath.ToSlash(filePath)
-		}
-
-		*results = append(*results, result)
 	}
 
 	// Recurse into configured sub_dirs
@@ -610,12 +532,235 @@ func migrateDir(currentDir string, parentConfig *TicketConfig, results *[]Migrat
 			continue
 		}
 
-		if err := migrateDir(subPath, config, results); err != nil {
+		if err := migrateDirWithOptions(subPath, config, opts, results); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func migrateSingleFile(filePath string, config *TicketConfig, opts MigrateOptions) (MigrationResult, bool, error) {
+	name := filepath.Base(filePath)
+	currentDir := filepath.Dir(filePath)
+	nameUpper := strings.ToUpper(name)
+
+	isTicketName := strings.HasPrefix(nameUpper, "BUG-") || strings.HasPrefix(nameUpper, "TASK-") || strings.HasPrefix(nameUpper, "TICKET-")
+	if !isTicketName {
+		return MigrationResult{}, false, nil
+	}
+
+	// 1. If OnlyInvalid, check if already valid
+	if opts.OnlyInvalid {
+		errors, err := ValidateSingleTicket(filePath, config)
+		if err != nil {
+			return MigrationResult{}, false, err
+		}
+		if len(errors) == 0 {
+			meta, _, _ := ParseFile(filePath)
+			if meta == nil {
+				meta = &TicketMeta{}
+			}
+			return MigrationResult{
+				OriginalPath:  filepath.ToSlash(filePath),
+				NewPath:       filepath.ToSlash(filePath),
+				ID:            meta.ID,
+				Title:         meta.Title,
+				Status:        meta.Status,
+				Action:        "skipped",
+				Reason:        "already_standardized",
+				File:          name,
+				ChangedFields: []string{},
+			}, true, nil
+		}
+	}
+
+	// Read original bytes for comparison
+	originalBytes, readErr := os.ReadFile(filePath)
+	if readErr != nil {
+		return MigrationResult{}, false, fmt.Errorf("failed to read file: %w", readErr)
+	}
+
+	// Parse legacy filename and potential status
+	extractedID, legacyStatus, renamed := parseLegacyFilename(name)
+
+	meta, body, err := ParseFile(filePath)
+	hasOriginalFrontmatter := err == nil && meta != nil && meta.ID != ""
+	if err != nil {
+		body = string(originalBytes)
+		meta = &TicketMeta{}
+	}
+
+	if meta == nil {
+		meta = &TicketMeta{}
+	}
+
+	originalMeta := *meta
+
+	// Set or enrich metadata
+	if meta.ID == "" {
+		meta.ID = extractedID
+	}
+
+	// Extract title from body if empty
+	if meta.Title == "" {
+		meta.Title = extractTitleFromBody(body, meta.ID)
+		if meta.Title == "" {
+			meta.Title = "Untitled Ticket"
+		}
+	}
+
+	// Set type based on directory
+	absD, err := filepath.Abs(currentDir)
+	var dirBase string
+	if err != nil {
+		dirBase = filepath.Base(currentDir)
+	} else {
+		dirBase = filepath.Base(absD)
+	}
+	dirBaseLower := strings.ToLower(dirBase)
+	meta.Type = dirBaseLower
+
+	// Determine status
+	if legacyStatus != "" {
+		meta.Status = legacyStatus
+	} else if meta.Status == "" {
+		meta.Status = "open"
+	}
+
+	// Set priority if empty
+	if meta.Priority == "" {
+		meta.Priority = "minor"
+	}
+
+	// Times
+	nowStr := time.Now().Format("2006-01-02 15:04")
+	if meta.CreatedAt == "" {
+		fileInfo, statErr := os.Stat(filePath)
+		if statErr == nil {
+			meta.CreatedAt = fileInfo.ModTime().Format("2006-01-02 15:04")
+		} else {
+			meta.CreatedAt = nowStr
+		}
+	}
+
+	// Auto resolved_at terminal status logic
+	isTerminal := meta.Status == "passed" || meta.Status == "rejected"
+	if isTerminal {
+		if meta.ResolvedAt == "" {
+			meta.ResolvedAt = nowStr
+		}
+	} else {
+		meta.ResolvedAt = ""
+	}
+
+	// Prepare for comparison (initially keep UpdatedAt as is)
+	meta.UpdatedAt = originalMeta.UpdatedAt
+
+	renderedBytes, renderErr := RenderTicket(meta, body)
+	if renderErr != nil {
+		return MigrationResult{}, false, fmt.Errorf("failed to render ticket: %w", renderErr)
+	}
+
+	targetFileName := meta.ID + ".md"
+	targetFilePath := filepath.Join(currentDir, targetFileName)
+
+	isContentUnchanged := bytes.Equal(originalBytes, renderedBytes)
+	needsRename := renamed && targetFilePath != filePath
+
+	var result MigrationResult
+	result.OriginalPath = filepath.ToSlash(filePath)
+	result.ID = meta.ID
+	result.Title = meta.Title
+	result.Status = meta.Status
+	result.File = name
+
+	// Build changed fields list
+	var changedFields []string
+	if originalMeta.ID != meta.ID {
+		changedFields = append(changedFields, "id")
+	}
+	if originalMeta.Title != meta.Title {
+		changedFields = append(changedFields, "title")
+	}
+	if originalMeta.Type != meta.Type {
+		changedFields = append(changedFields, "type")
+	}
+	if originalMeta.Status != meta.Status {
+		changedFields = append(changedFields, "status")
+	}
+	if originalMeta.Priority != meta.Priority {
+		changedFields = append(changedFields, "priority")
+	}
+	if originalMeta.ResolvedAt != meta.ResolvedAt {
+		changedFields = append(changedFields, "resolved_at")
+	}
+	if originalMeta.CreatedAt != meta.CreatedAt {
+		changedFields = append(changedFields, "created_at")
+	}
+
+	if isContentUnchanged && !needsRename && hasOriginalFrontmatter {
+		result.NewPath = filepath.ToSlash(filePath)
+		result.Action = "skipped"
+		result.Reason = "already_standardized"
+		result.ChangedFields = []string{}
+		return result, true, nil
+	}
+
+	// Update UpdatedAt for writing
+	meta.UpdatedAt = nowStr
+	changedFields = append(changedFields, "updated_at")
+	if !hasOriginalFrontmatter {
+		changedFields = append(changedFields, "frontmatter")
+	}
+	result.ChangedFields = changedFields
+
+	finalRenderedBytes, renderErr := RenderTicket(meta, body)
+	if renderErr != nil {
+		return MigrationResult{}, false, fmt.Errorf("failed to render ticket with updated_at: %w", renderErr)
+	}
+
+	if needsRename {
+		if _, err := os.Stat(targetFilePath); err == nil {
+			result.NewPath = filepath.ToSlash(filePath)
+			result.Action = "skipped"
+			result.Reason = "conflict"
+			result.ChangedFields = []string{}
+			return result, true, nil
+		}
+
+		if !opts.DryRun {
+			tempPath := targetFilePath + ".tmp"
+			if err := os.WriteFile(tempPath, finalRenderedBytes, 0644); err != nil {
+				return MigrationResult{}, false, fmt.Errorf("failed to write temp file: %w", err)
+			}
+			if err := os.Rename(tempPath, targetFilePath); err != nil {
+				os.Remove(tempPath)
+				return MigrationResult{}, false, fmt.Errorf("failed to rename temp file to target: %w", err)
+			}
+			if err := os.Remove(filePath); err != nil {
+				return MigrationResult{}, false, fmt.Errorf("failed to remove legacy file %s: %w", filePath, err)
+			}
+		}
+
+		result.NewPath = filepath.ToSlash(targetFilePath)
+		result.Action = "renamed & updated"
+	} else {
+		if !opts.DryRun {
+			tempPath := filePath + ".tmp"
+			if err := os.WriteFile(tempPath, finalRenderedBytes, 0644); err != nil {
+				return MigrationResult{}, false, fmt.Errorf("failed to write temp file: %w", err)
+			}
+			if err := os.Rename(tempPath, filePath); err != nil {
+				os.Remove(tempPath)
+				return MigrationResult{}, false, fmt.Errorf("failed to rename temp file to target: %w", err)
+			}
+		}
+		result.NewPath = filepath.ToSlash(filePath)
+		result.Action = "updated frontmatter"
+	}
+
+	return result, true, nil
 }
 
 func parseLegacyFilename(filename string) (id string, status string, renamed bool) {
