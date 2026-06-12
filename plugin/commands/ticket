@@ -21,19 +21,33 @@ BINARY_NAME="ticket-${OS}-${ARCH}"
 BINARY_PATH="$SCRIPT_DIR/$BINARY_NAME"
 
 # 2. Lazy download if missing
+if [ -f "$BINARY_PATH" ] && [ ! -s "$BINARY_PATH" ]; then
+    echo "[ticket] Warning: Found 0-byte corrupt binary. Removing..." >&2
+    rm -f "$BINARY_PATH"
+fi
+
 if [ ! -x "$BINARY_PATH" ]; then
     echo "[ticket] Binary not found. Downloading $BINARY_NAME..." >&2
     DOWNLOAD_URL="https://github.com/$REPO/releases/latest/download/$BINARY_NAME"
+    TMP_PATH="${BINARY_PATH}.tmp"
+    rm -f "$TMP_PATH"
 
     if command -v curl &>/dev/null; then
-        curl -fsSL "$DOWNLOAD_URL" -o "$BINARY_PATH"
+        curl -fsSL "$DOWNLOAD_URL" -o "$TMP_PATH"
     elif command -v wget &>/dev/null; then
-        wget -q "$DOWNLOAD_URL" -O "$BINARY_PATH"
+        wget -q "$DOWNLOAD_URL" -O "$TMP_PATH"
     else
         echo "[ticket] Error: Neither curl nor wget found." >&2
         exit 1
     fi
 
+    if [ ! -s "$TMP_PATH" ]; then
+        echo "[ticket] Error: Downloaded file is empty (404 or connection loss)." >&2
+        rm -f "$TMP_PATH"
+        exit 1
+    fi
+
+    mv -f "$TMP_PATH" "$BINARY_PATH"
     chmod +x "$BINARY_PATH"
     echo "[ticket] Download complete." >&2
 fi
