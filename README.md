@@ -56,16 +56,51 @@ Claude Code natively supports loading plugins via `.claude-plugin/plugin.json`:
    ```
 
 #### C. As an OpenAI Codex CLI Plugin
-Codex CLI features a native plugin and marketplace manager:
-1. **Register the git repository as a marketplace**:
-   ```bash
-   codex plugin marketplace add https://github.com/deepziyu/ticket-cli-plugin.git
+
+Codex CLI features a native plugin and marketplace manager. It supports installing plugins via local paths or pre-compiled archive packages.
+
+> [!WARNING]
+> **Limitations on Direct Git Repository Installation**:
+> Because the compiled executable binaries (`ticket` / `ticket.exe`) are excluded from the Git repository, **do not** use `codex plugin marketplace add <git-url>` to register the remote Git repo. Otherwise, the installed plugin will lack the execution binary and fail to run.
+> Please use one of the two recommended installation methods below.
+
+##### Method 1: Local Build & Install (Recommended for Developers)
+If you have cloned this repository locally:
+1. **Build the binary locally**:
+   Build the executable in the project root:
+   ```powershell
+   # Windows
+   ./make.ps1 build
+
+   # macOS / Linux
+   make build
    ```
-2. **Install and enable the plugin**:
+   This generates the platform-specific binary under `plugin/commands/`.
+2. **Register the project root directory as a marketplace**:
    ```bash
-   codex plugin add ticket-management-plugin@ticket-management-marketplace
+   # Replace /path/to/ with the actual absolute path to the repo root folder (do not append /plugin)
+   codex plugin marketplace add /path/to/ticket-cli-plugin
    ```
-   *This downloads, unpacks, and registers the ticket plugin commands and agent skill definitions.*
+3. **Install and enable the plugin**:
+   ```bash
+   codex plugin add ticket-management-plugin@ticket-cli-plugin
+   ```
+
+##### Method 2: Install via Pre-compiled Release Archive (Recommended for End-Users)
+If you do not want to install Go and compile the tool yourself:
+1. **Download the Release Archive**:
+   Go to the GitHub Releases page and download the pre-compiled zip or tar.gz plugin package matching your platform (e.g., `ticket-management-plugin-windows-amd64.zip`).
+2. **Extract to a local directory**:
+   Extract the archive to your chosen local directory (e.g., `D:\tools\ticket-plugin\`). This will produce a `plugin` directory containing the pre-compiled `commands/ticket` or `commands/ticket.exe` file.
+3. **Register the extracted directory as a marketplace**:
+   ```bash
+   codex plugin marketplace add D:\tools\ticket-plugin
+   ```
+4. **Install and enable the plugin**:
+   ```bash
+   codex plugin add ticket-management-plugin@ticket-plugin
+   ```
+
 
 ---
 
