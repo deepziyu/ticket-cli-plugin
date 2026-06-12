@@ -15,53 +15,18 @@ This tool resolves these issues through **"Immutable File Names + Status Transit
 
 ---
 
-## 🛠️ Installation & Usage
+## 🛠️ Installation & Setup Guide
 
-### 1. Build
-Build the executable binary inside the project root using PowerShell 7 or make:
-```powershell
-# Windows PowerShell
-./make.ps1 build
+This plugin supports both **"Direct Installation (Recommended, Self-Bootstrapping)"** and **"Local Source Build"** methods.
 
-# Unix / macOS
-make build
-```
-This produces the executable `ticket` (or `ticket.exe` on Windows) under `plugin/commands/`.
+---
 
-### 2. Integration with AI Agent CLIs
+### 1. 🚀 Direct Installation (For Users, Recommended)
 
-Choose the integration method based on your AI toolchain:
+This mode does not require a local Go language environment. The plugin comes with a cross-platform bootstrap script (`ticket.js`) that automatically downloads the pre-compiled binary matching your system architecture from GitHub Releases when an AI tool runs the `ticket` command for the first time.
 
-#### A. As a Google Antigravity CLI (`agy`) Plugin
-Install using the `agy` plugin system by specifying the local plugin path:
-```bash
-# Replace /path/to/ with the actual absolute path to this repo on your machine
-agy plugin install /path/to/ticket-cli-plugin/plugin
-```
-Once installed:
-- `agy` automatically adds the `commands/` directory to the shell session `PATH` for the Agent.
-- `agy` automatically loads and activates the skill defined in `skills/ticket-management/SKILL.md`.
-
-#### B. As a Claude Code (Anthropic) Plugin
-Claude Code natively supports loading plugins via `.claude-plugin/plugin.json`:
-1. **Load via command line**:
-   Start Claude Code pointing to the local plugin directory:
-   ```bash
-   claude --plugin-dir /path/to/ticket-cli-plugin/plugin
-   ```
-2. **Add inside an active session**:
-   Add the plugin directly in a running interactive session:
-   ```bash
-   /plugin add /path/to/ticket-cli-plugin/plugin
-   ```
-
-#### C. As an OpenAI Codex CLI Plugin
-
-Codex CLI features a native plugin and marketplace manager. We recommend installing it using one of the following methods:
-
-##### Method 1: Direct Install from GitHub Repo (Recommended, Self-Bootstrapping)
-This is the easiest installation method. The plugin includes a lightweight cross-platform JS bootstrap script that automatically downloads the pre-compiled binary matching your platform architecture from GitHub Releases on first run:
-1. **Register the Git repository as a marketplace**:
+#### A. One-click Installation in OpenAI Codex CLI
+1. **Register the remote GitHub marketplace**:
    ```bash
    codex plugin marketplace add https://github.com/deepziyu/ticket-cli-plugin.git
    ```
@@ -70,27 +35,71 @@ This is the easiest installation method. The plugin includes a lightweight cross
    codex plugin add ticket-management-plugin@ticket-management-marketplace
    ```
 
-##### Method 2: Local Source Build & Install (For Developer Debugging)
-If you want to modify or compile the Go source code yourself:
-1. **Build the binary locally**:
-   Build the executable in the project root:
+#### B. Enable in Google Antigravity CLI (`agy`)
+If you have installed via `codex` above, you can directly link its cached directory:
+```bash
+# Windows
+agy plugin install "$HOME\.codex\plugins\cache\ticket-management-marketplace\ticket-management-plugin\1.0.1"
+
+# Unix / macOS
+agy plugin install ~/.codex/plugins/cache/ticket-management-marketplace/ticket-management-plugin/1.0.1
+```
+*Or clone the repository and install directly:*
+```bash
+git clone https://github.com/deepziyu/ticket-cli-plugin.git
+agy plugin install ./ticket-cli-plugin/plugin
+```
+
+#### C. Enable in Claude Code (Anthropic)
+If you have installed via `codex` above, link its cache directory to start:
+```bash
+# Windows (PowerShell)
+claude --plugin-dir "$HOME\.codex\plugins\cache\ticket-management-marketplace\ticket-management-plugin\1.0.1"
+
+# Unix / macOS
+claude --plugin-dir ~/.codex/plugins/cache/ticket-management-marketplace/ticket-management-plugin/1.0.1
+```
+*Or clone the repository and install directly:*
+```bash
+git clone https://github.com/deepziyu/ticket-cli-plugin.git
+claude --plugin-dir ./ticket-cli-plugin/plugin
+```
+
+---
+
+### 2. 🛠️ Local Source Build & Installation (For Contributors & Developers)
+
+If you need to customize the Go source code or debug the plugin locally:
+
+1. **Clone the repository and enter the root directory**:
+   ```bash
+   git clone https://github.com/deepziyu/ticket-cli-plugin.git
+   cd ticket-cli-plugin
+   ```
+2. **Build the binary matching your host OS**:
    ```powershell
-   # Windows
+   # Windows (PowerShell 7)
    ./make.ps1 build
 
-   # macOS / Linux
+   # Linux / macOS
    make build
    ```
-   This generates the platform-specific binary under `plugin/commands/`.
-2. **Register the local project root directory as a marketplace**:
-   ```bash
-   # Replace /path/to/ with the actual absolute path to the repo root folder
-   codex plugin marketplace add /path/to/ticket-cli-plugin
-   ```
-3. **Install and enable the plugin**:
-   ```bash
-   codex plugin add ticket-management-plugin@ticket-cli-plugin
-   ```
+   This generates the executable `ticket` (or `ticket.exe`) under `plugin/commands/`.
+3. **Link the local plugin directory in your CLI of choice**:
+   - **Google Antigravity CLI (`agy`)**:
+     ```bash
+     agy plugin install ./plugin
+     ```
+   - **Claude Code**:
+     ```bash
+     claude --plugin-dir ./plugin
+     ```
+   - **OpenAI Codex CLI**:
+     Register the local directory as a marketplace and install:
+     ```bash
+     codex plugin marketplace add ./
+     codex plugin add ticket-management-plugin@ticket-cli-plugin
+     ```
 
 
 ---
