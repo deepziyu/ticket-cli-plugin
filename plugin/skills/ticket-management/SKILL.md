@@ -25,7 +25,12 @@ The Agent should activate this skill when encountering the following tasks:
 
 ## 🛠️ CLI Command Reference
 
-Always run the `ticket` command inside the environment instead of editing file frontmatter headers directly:
+Always run the `ticket` command inside the environment instead of editing file frontmatter headers directly.
+
+> [!TIP]
+> **💡 Self-Healing Fallback**: If running `ticket` directly throws a "CommandNotFound" error:
+> 1. Search the current Workspace or global plugin directories (e.g. `~/.codex/plugins/cache/`) for the `ticket` executable (such as `ticket.exe` / `ticket.cmd` on Windows, or `ticket` on Unix).
+> 2. Use the **absolute or relative path** of the executable to run the command (e.g. `./plugin/commands/ticket list ./bugs`), instead of falling back to editing markdown headers manually.
 
 ### 1. List Tickets (`ticket list`)
 *   **Syntax**: `ticket list [flags] [dir]`

@@ -25,7 +25,12 @@ description: Manage, query, transition, and validate ticket-like Markdown files 
 
 ## 🛠️ CLI 命令行操作指南
 
-在执行本技能时，Agent 应优先通过 Shell 运行 `ticket` 命令，而非直接编辑文件：
+在执行本技能时，Agent 应优先通过 Shell 运行 `ticket` 命令，而非直接编辑文件。
+
+> [!TIP]
+> **💡 自愈与容错（Fallback）**：若直接运行 `ticket` 报 “CommandNotFound” 等命令不存在的错误：
+> 1. 请在当前 Workspace 或全局插件安装目录（如 `~/.codex/plugins/cache/`）中检索 `ticket.exe` 或 `ticket` 可执行二进制文件。
+> 2. 找到该二进制文件后，**直接使用其绝对路径或相对路径**进行调用（例如 `./plugin/commands/ticket list ./bugs`），而非放弃使用 CLI 插件。
 
 ### 1. 检索工单列表 (`ticket list`)
 *   **指令**：`ticket list [flags] [dir]`
